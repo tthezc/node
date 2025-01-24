@@ -1,0 +1,45 @@
+name: Build Node.js for iOS
+
+on:
+  workflow_dispatch:
+    inputs:
+      node_version:
+        description: 'Node.js Version'
+        required: true
+        default: '20.x'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Install Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gcc-arm-linux-gnueabihf libtool autoconf
+
+    - name: Download Node.js Source
+      run: |
+        git clone https://github.com/nodejs/node.git
+        cd node
+        git checkout v${{ github.event.inputs.node_version }}
+        
+    - name: Cross Compile for iOS
+      run: |
+        cd node
+        ./configure \
+          --dest-os=ios \
+          --arch=arm64 \
+          --cross-compiling
+
+    - name: Create Deb Package 
+      run: |
+        cd node
+        make package-deb
+        
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: nodejs-iphoneos-arm64
+        path: node/out/*.deb
